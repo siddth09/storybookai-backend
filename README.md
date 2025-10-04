@@ -7,6 +7,8 @@
 **AI-Powered Storybook Adventure**
 
 [![Live App](https://img.shields.io/badge/Live%20App-Visit%20Now-brightgreen?logo=vercel)](https://storybookai-backend.vercel.app/)
+[![Live App](https://img.shields.io/badge/Live%20App%20on%20Gemini-Visit%20Now-brightgreen?logo=vercel)](https://g.co/gemini/share/820d921b0cf3)
+
 
 ---
 
@@ -35,7 +37,9 @@ StoryBook AI is a magical web application that instantly generates children’s 
 
 ## 🔗 Live App
 
-👉 [https://storybookai-backend.vercel.app/](https://storybookai-backend.vercel.app/)
+👉 **Vercel:**[https://storybookai-backend.vercel.app/](https://storybookai-backend.vercel.app/)
+
+👉 **Gemini:**[https://g.co/gemini/share/820d921b0cf3](https://g.co/gemini/share/820d921b0cf3)
 
 ---
 
