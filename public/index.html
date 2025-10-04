@@ -4,50 +4,167 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StoryBookAI - Voice to Imagination</title>
-  <link 
-href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" 
-rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .storybook-page { transition: transform 0.3s ease-in-out; transform-style: preserve-3d; }
+    .loader-dot { animation: pulse 1.5s infinite; }
+    .loader-dot:nth-child(2) { animation-delay: 0.5s; }
+    .loader-dot:nth-child(3) { animation-delay: 1s; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
+  </style>
 </head>
-<body class="bg-gradient-to-b from-blue-50 to-purple-100 flex flex-col 
-items-center justify-center min-h-screen p-4">
-  <img src="./logo.png" alt="StoryBookAI Logo" class="w-48 mb-6 
-rounded-full shadow-lg">
-  <h1 class="text-3xl font-bold text-purple-800 mb-4">StoryBookAI</h1>
+<body class="bg-gradient-to-b from-blue-50 to-purple-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+  <!-- Logo & Header -->
+  <img src="./logo.png" alt="StoryBookAI Logo" class="w-48 mb-6 rounded-full shadow-lg">
+  <h1 class="text-3xl font-bold text-purple-800 mb-2">StoryBookAI</h1>
   <p class="text-lg text-gray-700 mb-6">✨ Voice to Imagination ✨</p>
 
-  <textarea id="prompt" class="w-full max-w-md p-3 border rounded-lg 
-shadow" rows="3" placeholder="Enter your magical story 
-idea..."></textarea>
-  <button id="generateBtn" class="mt-4 bg-purple-600 hover:bg-purple-700 
-text-white px-6 py-2 rounded-lg">Generate Story</button>
+  <!-- Input Area -->
+  <div class="w-full max-w-md mb-4">
+    <textarea id="story-prompt" class="w-full p-3 border rounded-lg shadow" rows="3" placeholder="Enter your magical story idea..."></textarea>
+    <div class="flex mt-2 space-x-2">
+      <button id="voice-btn" class="flex-1 py-2 bg-yellow-400 text-white font-bold rounded-lg hover:bg-yellow-500">🎤 Speak</button>
+      <button id="generate-button" class="flex-1 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700">Generate Story</button>
+    </div>
+  </div>
 
-  <div id="story" class="mt-6 w-full max-w-md bg-white p-4 rounded-lg 
-shadow text-gray-800 whitespace-pre-line"></div>
+  <!-- Story Display -->
+  <div id="story-container" class="w-full max-w-xl bg-white p-4 rounded-xl shadow min-h-[200px] relative">
+    <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 hidden rounded-xl p-8">
+      <div class="flex space-x-2">
+        <div class="loader-dot w-4 h-4 bg-blue-500 rounded-full"></div>
+        <div class="loader-dot w-4 h-4 bg-green-500 rounded-full"></div>
+        <div class="loader-dot w-4 h-4 bg-yellow-500 rounded-full"></div>
+      </div>
+      <p class="mt-4 text-gray-700 font-semibold">Generating story...</p>
+    </div>
+
+    <div id="page-view" class="storybook-page hidden flex flex-col items-center">
+      <h2 id="story-title" class="text-2xl font-bold text-purple-700 mb-4"></h2>
+      <img id="page-image" src="https://placehold.co/400x300/e0f7fa/00bcd4?text=Illustration+Loading" class="w-full h-auto rounded-lg shadow mb-4" />
+      <p id="page-text" class="text-gray-800 text-lg mb-4"></p>
+      <div class="flex space-x-2">
+        <button id="prev-button" class="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">⬅ Previous</button>
+        <button id="narration-button" class="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">🔊 Read</button>
+        <button id="next-button" class="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Next ➡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Box -->
+  <div id="error-box" class="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-xl hidden">
+    <p id="error-text"></p>
+  </div>
 
   <script>
-    document.getElementById("generateBtn").addEventListener("click", async 
-() => {
-      const prompt = document.getElementById("prompt").value.trim();
-      if (!prompt) return alert("Please enter a story idea!");
+    let storyData = null, currentPage = 0, audioPlayer = new Audio(), isReading = false;
+    const storyPromptEl = document.getElementById("story-prompt");
+    const generateButton = document.getElementById("generate-button");
+    const voiceBtn = document.getElementById("voice-btn");
+    const loadingState = document.getElementById("loading-state");
+    const pageView = document.getElementById("page-view");
+    const storyTitleEl = document.getElementById("story-title");
+    const pageText = document.getElementById("page-text");
+    const pageImage = document.getElementById("page-image");
+    const prevButton = document.getElementById("prev-button");
+    const nextButton = document.getElementById("next-button");
+    const narrationButton = document.getElementById("narration-button");
 
-      const storyBox = document.getElementById("story");
-      storyBox.textContent = "✨ Generating your story...";
+    function showError(msg) {
+      const box = document.getElementById("error-box");
+      document.getElementById("error-text").textContent = msg;
+      box.classList.remove("hidden");
+      setTimeout(() => box.classList.add("hidden"), 4000);
+      console.error(msg);
+    }
+
+    // STT
+    let recognition;
+    if ("webkitSpeechRecognition" in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false; recognition.lang = "en-US"; recognition.interimResults = false;
+      recognition.onresult = (event)=>{ storyPromptEl.value = event.results[0][0].transcript; };
+      recognition.onerror = (e)=>console.error(e);
+    }
+    voiceBtn.addEventListener("click", () => { if(!recognition) return alert("STT not supported."); recognition.start(); });
+
+    // Convert Base64 L16 PCM to WAV
+    function base64ToArrayBuffer(base64) {
+      const binary = atob(base64), len=binary.length, bytes=new Uint8Array(len);
+      for(let i=0;i<len;i++) bytes[i]=binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+    function pcmToWav(pcmData,sampleRate){
+      const pcm16=new Int16Array(pcmData), numChannels=1,bitsPerSample=16,byteRate=sampleRate*numChannels*(bitsPerSample/8);
+      const buffer=new ArrayBuffer(44+pcm16.byteLength), view=new DataView(buffer);
+      function writeString(v,o,s){for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i));}
+      writeString(view,0,'RIFF'); view.setUint32(4,36+pcm16.byteLength,true); writeString(view,8,'WAVE');
+      writeString(view,12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,numChannels,true);
+      view.setUint32(24,sampleRate,true); view.setUint32(28,byteRate,true); view.setUint16(32,numChannels*(bitsPerSample/8),true);
+      view.setUint16(34,bitsPerSample,true); writeString(view,36,'data'); view.setUint32(40,pcm16.byteLength,true);
+      let offset=44; for(let i=0;i<pcm16.length;i++){view.setInt16(offset,pcm16[i],true); offset+=2;}
+      return new Blob([view],{type:'audio/wav'});
+    }
+
+    // Generate story using backend API
+    generateButton.addEventListener("click", async ()=>{
+      const prompt = storyPromptEl.value.trim();
+      if(!prompt) return showError("Enter a story idea!");
+      loadingState.classList.remove("hidden"); generateButton.disabled=true;
 
       try {
-        const res = await 
-fetch("https://storybookai-backend.vercel.app/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: prompt }),
+        const res = await fetch("/api/generate", {
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({input:prompt})
         });
         const data = await res.json();
-        storyBox.textContent = 
-data?.candidates?.[0]?.content?.parts?.[0]?.text || "No story generated.";
-      } catch (err) {
-        storyBox.textContent = "❌ Error generating story.";
-      }
+        if(!data?.pages) throw new Error("Invalid story format from API.");
+
+        storyData = data;
+
+        // Generate images & TTS for each page sequentially
+        for(const page of storyData.pages){
+          // Imagen API
+          const imgRes = await fetch("/api/image", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt: page.image_prompt})});
+          const imgData = await imgRes.json(); page.imageUrl = imgData.imageUrl;
+
+          // TTS API
+          const ttsRes = await fetch("/api/tts", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text: page.text})});
+          const ttsData = await ttsRes.json(); page.audioUrl = ttsData.audioUrl;
+        }
+
+        displayPage(1);
+
+      } catch(e){ showError("Error generating story: "+e.message); console.error(e);}
+      finally{ loadingState.classList.add("hidden"); generateButton.disabled=false; }
     });
+
+    function displayPage(pageNum){
+      if(!storyData || !storyData.pages) return;
+      currentPage = pageNum; const page = storyData.pages[pageNum-1];
+      storyTitleEl.textContent = storyData.title;
+      pageText.textContent = page.text;
+      pageImage.src = page.imageUrl || "https://placehold.co/400x300/e0f7fa/00bcd4?text=No+Image";
+      audioPlayer.src = page.audioUrl || "";
+      pageView.classList.remove("hidden");
+
+      prevButton.disabled = pageNum===1;
+      nextButton.disabled = pageNum===storyData.pages.length;
+      narrationButton.disabled = !page.audioUrl;
+
+      stopNarration();
+    }
+
+    function navigateStory(dir){ displayPage(currentPage+dir); }
+    prevButton.addEventListener("click", ()=>navigateStory(-1));
+    nextButton.addEventListener("click", ()=>navigateStory(1));
+
+    narrationButton.addEventListener("click", ()=>{
+      if(isReading){ stopNarration(); } else if(audioPlayer.src){ audioPlayer.play(); isReading=true; narrationButton.textContent="⏸ Stop Reading"; }
+    });
+    function stopNarration(){ audioPlayer.pause(); audioPlayer.currentTime=0; isReading=false; narrationButton.textContent="🔊 Read"; }
+    audioPlayer.addEventListener("ended", stopNarration);
   </script>
 </body>
 </html>
-
