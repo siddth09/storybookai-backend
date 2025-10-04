@@ -20,32 +20,29 @@ export default async function handler(req, res) {
       model: "gemini-2.5-flash-preview-tts"
     };
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        console.error("API Error:", errorBody);
-        throw new Error(`API request failed with status ${response.status}`);
+        console.error("TTS API Error:", errorBody);
+        throw new Error(`TTS API request failed with status ${response.status}`);
     }
     
-    // FIX: You were missing the line to parse the JSON response from the API.
-    // We need to call .json() before we can access the data.
     const json = await response.json();
-
-    // Now we can safely access the audio data from the parsed 'json' object.
     const audioData = json.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
     if (!audioData) {
-      console.error("TTS Response:", JSON.stringify(json, null, 2)); // Log the actual response for debugging
+      console.error("TTS Response:", JSON.stringify(json, null, 2));
       throw new Error("TTS failed to generate audio data.");
     }
     
-    // Note: The Gemini API returns raw PCM data (audio/L16), not a WAV file. 
-    // Most modern browsers can handle this, so we'll leave the data URL format as is for now.
     res.status(200).json({ audioUrl: `data:audio/wav;base64,${audioData}` });
   } catch (e) {
-    console.error("Handler Error:", e);
+    console.error("Handler Error:", e.message);
     res.status(500).json({ error: e.message });
   }
 }
+
