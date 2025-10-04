@@ -7,7 +7,7 @@
 **AI-Powered Storybook Adventure**
 
 [![Demo Video](https://img.shields.io/badge/YouTube-Demo-red?logo=youtube)](https://www.youtube.com/watch?v=qNhqYPnZ0sA)
-[![Live App](https://img.shields.io/badge/Live%20App-Visit%20Now-brightgreen?logo=vercel)](https://storybookai-backend.vercel.app/)
+[![Live App](https://img.shields.io/badge/Live%20App%20on%20Vercel-Visit%20Now-brightgreen?logo=vercel)](https://storybookai-backend.vercel.app/)
 [![Live App](https://img.shields.io/badge/Live%20App%20on%20Gemini-Visit%20Now-brightgreen?logo=vercel)](https://g.co/gemini/share/820d921b0cf3)
 
 
