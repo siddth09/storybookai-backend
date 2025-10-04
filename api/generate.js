@@ -1,30 +1,35 @@
+// api/story.js
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+    const { prompt } = req.body;
 
-  const { input } = req.body;
-  if (!input) return res.status(400).json({ error: "Missing input" });
+    if (!prompt) {
+        return res.status(400).json({ error: "Story prompt is required" });
+    }
 
-  try {
-    const response = await fetch(
-      
-"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: input }] }],
-        }),
-      }
-    );
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const API_KEY = process.env.GEMINI_API_KEY; // store in Vercel env
+    if (!API_KEY) return res.status(500).json({ error: "API_KEY not set" });
+
+    try {
+        // 1️⃣ Generate story JSON
+        const systemPrompt = `You are an expert children's book author...`; // same as in your HTML
+        const storyResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `Create a 5-page story: ${prompt}` }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: { responseMimeType: "application/json" }
+                }),
+            }
+        );
+        const storyData = await storyResponse.json();
+        res.status(200).json({ story: storyData });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
 }
-
