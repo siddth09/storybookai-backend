@@ -46,7 +46,7 @@ StoryBook AI is a magical web application that instantly generates children’s 
 
 ## 📺 Demo
 
-[![Demo Video](https://img.youtube.com/vi/qNhqYPnZ0sA/.jpg)](https://www.youtube.com/watch?v=qNhqYPnZ0sA)  
+[![Demo Video](https://img.youtube.com/vi/qNhqYPnZ0sA/0.jpg)](https://www.youtube.com/watch?v=qNhqYPnZ0sA)  
 
 _Click the image above to watch the demo on YouTube._
 
