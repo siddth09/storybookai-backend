@@ -7,13 +7,20 @@ export default async function handler(req, res) {
   if (!prompt) return res.status(400).json({ error: 'Prompt required' });
 
   try {
+    // CHANGE: The system instructions have been moved directly into the main prompt.
+    // This creates a simpler and more reliable request payload.
+    const fullPrompt = `
+      You are a children's book author. Your task is to generate a story in a specific JSON format.
+      The output MUST be a single, valid JSON object and nothing else. Do not include any introductory text or markdown formatting like \`\`\`json.
+      The JSON object must have a 'title' (string) and a 'pages' array of exactly 5 pages. Each object in the 'pages' array must contain 'page_number' (integer), 'text' (string), and 'image_prompt' (string, a simple description for an illustration).
+
+      Here is the story topic: "${prompt}"
+    `;
+
     const payload = {
-      contents: [{ parts: [{ text: `Create a 5-page children's story about: ${prompt}` }] }],
-      // UPDATED: I've made the system instruction very direct and clear about the required JSON format.
-      systemInstruction: {
-        parts: [{ text: "You are a children's book author. Your task is to generate a story in a specific JSON format. The output MUST be a single, valid JSON object and nothing else. Do not include any introductory text or markdown formatting like ```json. The JSON object must have a 'title' (string) and a 'pages' array. Each object in the 'pages' array must contain 'page_number' (integer), 'text' (string), and 'image_prompt' (string, a simple description for an illustration)." }]
-      },
-      // CHANGE: The complex responseSchema has been removed to simplify the API call, which is likely the cause of the 400 error.
+      // The full instructions and the user's prompt are now combined here.
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      // The separate 'systemInstruction' object has been removed.
       generationConfig: {
         responseMimeType: "application/json",
       }
@@ -25,7 +32,6 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
         const errorBody = await response.text();
-        // This log will now appear in your Vercel logs so you can see the exact error from the Gemini API.
         console.error("API Error Response:", errorBody); 
         throw new Error(`API request failed with status ${response.status}. See function logs for details.`);
     }
@@ -38,8 +44,7 @@ export default async function handler(req, res) {
       throw new Error("Failed to get a valid story response from the AI.");
     }
     
-    // IMPROVED PARSING: This logic is more robust. It finds the JSON object within the AI's
-    // text response, even if it accidentally includes extra text or formatting.
+    // This robust parsing logic will find the JSON even if the AI adds extra text.
     const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
         console.error("Could not find valid JSON in the AI's response:", textResponse);
