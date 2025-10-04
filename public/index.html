@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StoryBookAI - Voice to Imagination</title>
+  <link 
+href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" 
+rel="stylesheet" />
+</head>
+<body class="bg-gradient-to-b from-blue-50 to-purple-100 flex flex-col 
+items-center justify-center min-h-screen p-4">
+  <img src="./logo.png" alt="StoryBookAI Logo" class="w-48 mb-6 
+rounded-full shadow-lg">
+  <h1 class="text-3xl font-bold text-purple-800 mb-4">StoryBookAI</h1>
+  <p class="text-lg text-gray-700 mb-6">✨ Voice to Imagination ✨</p>
+
+  <textarea id="prompt" class="w-full max-w-md p-3 border rounded-lg 
+shadow" rows="3" placeholder="Enter your magical story 
+idea..."></textarea>
+  <button id="generateBtn" class="mt-4 bg-purple-600 hover:bg-purple-700 
+text-white px-6 py-2 rounded-lg">Generate Story</button>
+
+  <div id="story" class="mt-6 w-full max-w-md bg-white p-4 rounded-lg 
+shadow text-gray-800 whitespace-pre-line"></div>
+
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", async 
+() => {
+      const prompt = document.getElementById("prompt").value.trim();
+      if (!prompt) return alert("Please enter a story idea!");
+
+      const storyBox = document.getElementById("story");
+      storyBox.textContent = "✨ Generating your story...";
+
+      try {
+        const res = await 
+fetch("https://storybookai-backend.vercel.app/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: prompt }),
+        });
+        const data = await res.json();
+        storyBox.textContent = 
+data?.candidates?.[0]?.content?.parts?.[0]?.text || "No story generated.";
+      } catch (err) {
+        storyBox.textContent = "❌ Error generating story.";
+      }
+    });
+  </script>
+</body>
+</html>
+
