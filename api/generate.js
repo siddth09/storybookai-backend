@@ -25,8 +25,9 @@ export default async function handler(req, res) {
         responseMimeType: "application/json",
       }
     };
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`, {
+    
+    // *** THIS IS THE LINE WITH THE FIX ***
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
 
@@ -59,4 +60,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: e.message });
   }
 }
-
